@@ -127,6 +127,7 @@ in
       )
       // {
         override = config.app.package.override;
+        overrideAttrs = config.app.package.overrideAttrs;
       };
   };
 }

@@ -111,18 +111,22 @@ in
         )
       );
 
-    build.package = assertWarn (
-      if config.app.isFhsenv then
-        (config.app.package.override {
-          buildFHSEnv = config.build.fhsenv;
-        })
-      else
-        (config.fhsenv.package (
-          (fhsEnvArgs { })
-          // {
-            inherit (config.app.package) pname version meta;
-          }
-        ))
-    );
+    build.package =
+      assertWarn (
+        if config.app.isFhsenv then
+          (config.app.package.override {
+            buildFHSEnv = config.build.fhsenv;
+          })
+        else
+          (config.fhsenv.package (
+            (fhsEnvArgs { })
+            // {
+              inherit (config.app.package) pname version meta;
+            }
+          ))
+      )
+      // {
+        override = config.app.package.override;
+      };
   };
 }

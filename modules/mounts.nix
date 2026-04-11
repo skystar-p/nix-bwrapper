@@ -1,6 +1,16 @@
 { config, lib, ... }:
 let
   cfg = config.mounts;
+  pathOption = lib.types.submodule {
+    options = {
+      source = lib.mkOption {
+        type = lib.types.str;
+      };
+      target = lib.mkOption {
+        type = lib.types.str;
+      };
+    };
+  };
 in
 {
   options.mounts = {
@@ -10,7 +20,7 @@ in
       default = true;
     };
     read = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
+      type = lib.types.listOf (lib.types.either lib.types.str pathOption);
       description = ''
         Paths to be mounted read-only within the sandbox. Supports environment
         variables like `$HOME`. The default includes common paths needed for
@@ -19,7 +29,7 @@ in
       default = [ ];
     };
     readWrite = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
+      type = lib.types.listOf (lib.types.either lib.types.str pathOption);
       description = ''
         Paths to be mounted read-write within the sandbox. Supports environment
         variables like `$HOME`.
@@ -70,11 +80,33 @@ in
         ));
 
       fhsenv.bwrap.additionalArgs =
+        let
+          read = map (
+            arg:
+            if builtins.isString arg then
+              {
+                source = arg;
+                target = arg;
+              }
+            else
+              arg
+          ) cfg.read;
+          readWrite = map (
+            arg:
+            if builtins.isString arg then
+              {
+                source = arg;
+                target = arg;
+              }
+            else
+              arg
+          ) cfg.readWrite;
+        in
         (map (e: ''--bind "$HOME/.bwrapper/${config.app.bwrapPath}/${e.name}" "${e.path}"'') (
           lib.unique cfg.sandbox
         ))
-        ++ (map (e: "--ro-bind-try \"${e}\" \"${e}\"") (lib.unique cfg.read))
-        ++ (map (e: "--bind \"${e}\" \"${e}\"") (lib.unique cfg.readWrite));
+        ++ (map (e: "--ro-bind-try \"${e.source}\" \"${e.target}\"") (lib.unique read))
+        ++ (map (e: "--bind \"${e.source}\" \"${e.target}\"") (lib.unique readWrite));
     }
     (lib.mkIf cfg.privateTmp {
       script.preCmds.stage1 = ''

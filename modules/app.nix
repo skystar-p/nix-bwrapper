@@ -111,7 +111,8 @@ in
   };
 
   config = {
-    app.addPkgs = if cfg.isFhsenv then [ ] else (cfg.package.buildInputs or [ ]);
+    app.addPkgs =
+      if cfg.isFhsenv then [ ] else (builtins.filter (x: x != null) (cfg.package.buildInputs or [ ]));
 
     app.env = {
       NOTIFY_IGNORE_PORTAL = 1;

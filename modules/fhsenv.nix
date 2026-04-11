@@ -96,6 +96,10 @@ in
         '';
         default = true;
       };
+      additionalTmpfs = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+      };
     };
   };
 
@@ -140,6 +144,9 @@ in
 
       fhsenv.bwrap.baseArgs = [
         "--new-session"
+      ]
+      ++ (map (arg: "--tmpfs \"${arg}\"") cfg.opts.additionalTmpfs)
+      ++ [
         "--tmpfs /home"
         "--tmpfs /mnt"
         "--tmpfs /run"

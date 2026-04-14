@@ -100,6 +100,10 @@ in
         type = lib.types.listOf lib.types.str;
         default = [ ];
       };
+      newSession = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+      };
     };
   };
 
@@ -142,29 +146,28 @@ in
     {
       fhsenv.package = pkgs.callPackage ../build-fhsenv-bubblewrap { inherit nixpkgs; };
 
-      fhsenv.bwrap.baseArgs = [
-        "--new-session"
-      ]
-      ++ (map (arg: "--tmpfs \"${arg}\"") cfg.opts.additionalTmpfs)
-      ++ [
-        "--tmpfs /home"
-        "--tmpfs /mnt"
-        "--tmpfs /run"
-        "--ro-bind-try /run/current-system /run/current-system"
-        "--ro-bind-try /run/booted-system /run/booted-system"
-        "--ro-bind-try /run/opengl-driver /run/opengl-driver"
-        "--ro-bind-try /run/opengl-driver-32 /run/opengl-driver-32"
-        "--ro-bind-try /run/systemd/resolve/stub-resolv.conf /run/systemd/resolve/stub-resolv.conf"
-        "--bind \"$XDG_RUNTIME_DIR/doc/by-app/${config.app.id}\" \"$XDG_RUNTIME_DIR/doc\""
-      ]
-      ++ (lib.unique (
-        lib.mapAttrsToList (
-          name: value:
-          "--setenv ${name} ${
-            if builtins.typeOf value == "string" then ("\"${value}\"") else (builtins.toString value)
-          }"
-        ) config.app.env
-      ));
+      fhsenv.bwrap.baseArgs =
+        (lib.optional cfg.opts.newSession "--new-session")
+        ++ (map (arg: "--tmpfs \"${arg}\"") cfg.opts.additionalTmpfs)
+        ++ [
+          "--tmpfs /home"
+          "--tmpfs /mnt"
+          "--tmpfs /run"
+          "--ro-bind-try /run/current-system /run/current-system"
+          "--ro-bind-try /run/booted-system /run/booted-system"
+          "--ro-bind-try /run/opengl-driver /run/opengl-driver"
+          "--ro-bind-try /run/opengl-driver-32 /run/opengl-driver-32"
+          "--ro-bind-try /run/systemd/resolve/stub-resolv.conf /run/systemd/resolve/stub-resolv.conf"
+          "--bind \"$XDG_RUNTIME_DIR/doc/by-app/${config.app.id}\" \"$XDG_RUNTIME_DIR/doc\""
+        ]
+        ++ (lib.unique (
+          lib.mapAttrsToList (
+            name: value:
+            "--setenv ${name} ${
+              if builtins.typeOf value == "string" then ("\"${value}\"") else (builtins.toString value)
+            }"
+          ) config.app.env
+        ));
 
       fhsenv.bwrap.finalArgs = cfg.bwrap.baseArgs ++ cfg.bwrap.additionalArgs;
     }

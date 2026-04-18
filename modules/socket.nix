@@ -46,7 +46,7 @@ in
       ];
 
       fhsenv.bwrap.additionalArgs = [
-        ''--ro-bind-try "$XDG_RUNTIME_DIR/pulse" "$XDG_RUNTIME_DIR/pulse"''
+        ''--bind-try "$XDG_RUNTIME_DIR/pulse" "$XDG_RUNTIME_DIR/pulse"''
       ];
     })
     (lib.mkIf cfg.wayland {

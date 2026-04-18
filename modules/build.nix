@@ -116,16 +116,20 @@ in
         mkPackage =
           appPkg:
           let
-            wrapped = assertWarn (
+            
+
+    wrapped = assertWarn (
               if config.app.isFhsenv then
-                (config.app.package.override {
+                (appPkg.override {
                   buildFHSEnv = config.build.fhsenv;
                 })
               else
                 (config.fhsenv.package (
-                  (fhsEnvArgs { })
+                  (fhsEnvArgs {
+                    pkg = appPkg;
+                  })
                   // {
-                    inherit (config.app.package) pname version meta;
+                    inherit (appPkg) pname version meta;
                   }
                 ))
             );

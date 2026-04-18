@@ -11,6 +11,30 @@ let
       };
     };
   };
+  mountPairType = lib.types.submodule {
+    options = {
+      from = lib.mkOption {
+        type = lib.types.str;
+        description = "Path on the host system.";
+      };
+      to = lib.mkOption {
+        type = lib.types.str;
+        description = "Path to mount within the sandbox.";
+      };
+    };
+  };
+  mountsType = lib.types.listOf (
+    lib.types.coercedTo (lib.types.either lib.types.str mountPairType) (
+      m:
+      if builtins.isString m then
+        {
+          from = m;
+          to = m;
+        }
+      else
+        m
+    ) mountPairType
+  );
 in
 {
   options.mounts = {
@@ -20,22 +44,27 @@ in
       default = true;
     };
     read = lib.mkOption {
-      type = lib.types.listOf (lib.types.either lib.types.str pathOption);
+      type = mountsType;
       description = ''
         Paths to be mounted read-only within the sandbox. Supports environment
-        variables like `$HOME`. The default includes common paths needed for
-        theming to function in most apps.
+        variables like `$HOME`.
+
+        List entries may either be paths, or a mapping of a host path to a
+        different path within the sandbox.
       '';
       default = [ ];
     };
     readWrite = lib.mkOption {
-      type = lib.types.listOf (lib.types.either lib.types.str pathOption);
+      type = mountsType;
       description = ''
         Paths to be mounted read-write within the sandbox. Supports environment
         variables like `$HOME`.
 
-        If the path doesn't exist, a corresponding directory will be created at
-        the specified location.
+        If the path to be mounteddoesn't exist in the host system, a corresponding
+        directory will be created at the specified location.
+
+        List entries may either be paths, or a mapping of a host path to a
+        different path within the sandbox.
       '';
       default = [ ];
     };
@@ -76,37 +105,17 @@ in
         ))
         + "\n"
         + (builtins.concatStringsSep "\n" (
-          map (e: ''(test -d "${e}" || test -f "${e}") || mkdir -p "${e}"'') (lib.unique cfg.readWrite)
+          map (e: ''(test -d "${e.from}" || test -f "${e.from}") || mkdir -p "${e.from}"'') (
+            lib.unique cfg.readWrite
+          )
         ));
 
       fhsenv.bwrap.additionalArgs =
-        let
-          read = map (
-            arg:
-            if builtins.isString arg then
-              {
-                source = arg;
-                target = arg;
-              }
-            else
-              arg
-          ) cfg.read;
-          readWrite = map (
-            arg:
-            if builtins.isString arg then
-              {
-                source = arg;
-                target = arg;
-              }
-            else
-              arg
-          ) cfg.readWrite;
-        in
         (map (e: ''--bind "$HOME/.bwrapper/${config.app.bwrapPath}/${e.name}" "${e.path}"'') (
           lib.unique cfg.sandbox
         ))
-        ++ (map (e: "--ro-bind-try \"${e.source}\" \"${e.target}\"") (lib.unique read))
-        ++ (map (e: "--bind \"${e.source}\" \"${e.target}\"") (lib.unique readWrite));
+        ++ (map (e: "--ro-bind-try \"${e.from}\" \"${e.to}\"") (lib.unique cfg.read))
+        ++ (map (e: "--bind \"${e.from}\" \"${e.to}\"") (lib.unique cfg.readWrite));
     }
     (lib.mkIf cfg.privateTmp {
       script.preCmds.stage1 = ''

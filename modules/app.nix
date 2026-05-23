@@ -53,6 +53,11 @@ in
       default = false;
       description = "Whether to overwrite the `Exec` section in the app's `.desktop` file";
     };
+    overwriteExecName = lib.mkOption {
+      type = lib.types.str;
+      default = cfg.runScript;
+      description = "Name for the `Exec` section if overwritten";
+    };
     package = lib.mkOption {
       type = lib.types.nullOr lib.types.package;
       description = ''

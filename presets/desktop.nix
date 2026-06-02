@@ -72,6 +72,10 @@ in
         "$HOME/.config/Kvantum"
         "$HOME/.config/gtkrc-2.0"
         "$HOME/.local/share/color-schemes"
+
+        # these are needed for finding gpu
+        "/sys/devices"
+        "/sys/dev/char"
       ];
 
       sandbox = [
